@@ -11,16 +11,18 @@ pontuacoes = dict(islice(pontuacoes.copy().items(), 10))
 
 while True:
     user = input('\nInforme seu username: ').lower().replace(' ','-')
-    if len(user) > 10:
-        print('Username com mais de 10 caracteres...')
+    if len(user) > 15:
+        print('Username com mais de 15 caracteres...')
         continue
     if user in pontuacoes.keys():
         match input('Já existe um com mesmo nome\nDeseja continuar? (s ou n): ').lower().replace(' ',''):
             case 'n':
                 continue
             case _:
+                highscore = pontuacoes[user]
                 break
     else:
+        highscore = 0
         break
 
 pg.init()
@@ -39,7 +41,7 @@ FONT = pg.font.SysFont('cambria',15)
 vmax_asteroide, vmin_asteroide = 6, .5
 tempo_spawn_asteroides = 500 #500ms
 
-highscore = pontuacoes[user]
+
 
 #Definiçõa de classes
 class Player():
@@ -174,35 +176,44 @@ def draw(win,player,bullets,asteroides,tempo):
     #Atualizar
     pg.display.update()
 
-def pre(pontuacoes):
+def pre():
+    global pontuacoes
+    pontuacoes = dict(sorted(pontuacoes.items(), key=lambda item: item[1],reverse=True))
+    pontuacoes = dict(islice(pontuacoes.copy().items(), 10))   
+
+    #Inicia Menu 
     while True:
         clock.tick(fps)
         window.fill(BLACK)
 
+        #Título
         title = pg.font.SysFont('cambria',30).render('Melhores pontuações',True,WHITE)
         window.blit(title,(width//2-(title.get_width()//2),100))
 
+        #Pontuações
         y = 200
         for i in pontuacoes.keys():
             pont1 = pg.font.SysFont('cambria',20).render(f'{i}. {pontuacoes[i]}min',True,WHITE)
             window.blit(pont1,(width//2-(pont1.get_width()//2),y))
             y+=30
 
+        #Informação
         space = pg.font.SysFont('cambria',15).render('Pressione SPACE para continuar',True,WHITE)
         window.blit(space,(width//2-(space.get_width()//2),height-100))
 
+        #Eventos
         if pg.key.get_pressed()[pg.K_SPACE]:
             break
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 exit()
-                
+        
+        #Atualiza tela
         pg.display.update()
 
 def main():
-    global vmax_asteroide, vmin_asteroide
-
-    pre(pontuacoes)
+    global vmax_asteroide, vmin_asteroide, highscore
+    pre()
 
     #Variáveis locais
     jogador = Player(x=width//2,y=height//2,life=100,ammo=1)
@@ -235,9 +246,11 @@ def main():
         #Player
         jogador.limites()
         jogador.inputs(keys)
+        #Reinicia o jogo e salva o score
         if jogador.verificar_vida():
             if (pg.time.get_ticks() - t_i0)/60000 > highscore:
-                pontuacoes[user] = round((pg.time.get_ticks() - t_i0)/60000,2)
+                highscore = round((pg.time.get_ticks() - t_i0)/60000,2)
+                pontuacoes[user] = highscore
                 with open("pontuacoes.json", "w") as file:
                     json.dump(pontuacoes, file)
             asteroides = []
@@ -248,7 +261,8 @@ def main():
             perdeu = pg.font.SysFont('cambria',50).render('Você é ruim!!!',True,WHITE)    
             window.blit(perdeu,(width//2 - (perdeu.get_width()//2),height//2))
             pg.display.update()
-            pg.time.delay(3000)
+            pg.time.delay(2000)
+            pre()
             t_i0 = pg.time.get_ticks()
 
         #Bullets
