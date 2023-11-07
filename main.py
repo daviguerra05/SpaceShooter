@@ -39,6 +39,8 @@ FONT = pg.font.SysFont('cambria',15)
 vmax_asteroide, vmin_asteroide = 6, .5
 tempo_spawn_asteroides = 500 #500ms
 
+highscore = pontuacoes[user]
+
 #Definiçõa de classes
 class Player():
     def __init__(self,x,y,life,ammo) -> None:
@@ -234,6 +236,10 @@ def main():
         jogador.limites()
         jogador.inputs(keys)
         if jogador.verificar_vida():
+            if (pg.time.get_ticks() - t_i0)/60000 > highscore:
+                pontuacoes[user] = round((pg.time.get_ticks() - t_i0)/60000,2)
+                with open("pontuacoes.json", "w") as file:
+                    json.dump(pontuacoes, file)
             asteroides = []
             bullets = []  
             vmax_asteroide = 6 
