@@ -9,35 +9,32 @@ fps = 60
 clock = pg.time.Clock()
 window = pg.display.set_mode((width,height))
 pg.display.set_caption("Space Shooter")
-BLACK = (0,0,0)
-WHITE = (255,255,255)
+
+#Variáveis Globais
+BLACK, WHITE = (0,0,0), (255,255,255)
 FONT = pg.font.SysFont('cambria',15)
 
-nave = pg.image.load('nave.png')
-nave = pg.transform.scale(nave, (150,150))
-
-vmax_asteroide = 6
-vmin_asteroide = .5
-
-t_spwan_ast = 500 # 1segundo
-
+vmax_asteroide, vmin_asteroide = 6, .5
+tempo_spawn_asteroides = 500 #500ms
 
 #Definiçõa de classes
 class Player():
     def __init__(self,x,y,life,ammo) -> None:
         self.x = self.initial_x = x
         self.y = self.initial_y = y
-        self.life = life
+        self.life = self.initial_life = life
         self.ammo = ammo
         self.velocidade = 10
+        self.nave = pg.transform.scale(pg.image.load('nave.png'), (110,110))
+        self.rect = self.nave.get_rect()
     
     def draw(self,win):
         mouse_x, mouse_y = pg.mouse.get_pos()
-        angle = math.degrees(math.atan2(mouse_y - self.y, mouse_x - self.x))*-1
-        rotated_image = pg.transform.rotate(nave, angle-90)
-        rotated_rect = rotated_image.get_rect()
-        rotated_rect.center = (self.x, self.y)
-        win.blit(rotated_image, rotated_rect.topleft)
+        angulo = math.degrees(math.atan2(mouse_y - self.y, mouse_x - self.x))*-1
+        nave_img_rotacionada = pg.transform.rotate(self.nave, angulo-90)
+        self.rect = nave_img_rotacionada.get_rect()
+        self.rect.center = (self.x, self.y)
+        win.blit(nave_img_rotacionada, self.rect.topleft)
 
     def inputs(self,keys):
         dx, dy = 0, 0
@@ -49,17 +46,26 @@ class Player():
             dx -= 1
         if keys[pg.K_d]:
             dx += 1
-
         # Verifica se o jogador está se movendo diagonalmente
         if dx != 0 and dy != 0:
-            # Normaliza o vetor diagonal
             length = math.sqrt(dx**2 + dy**2)
             dx /= length
             dy /= length
         self.x += dx * self.velocidade
         self.y += dy * self.velocidade
-        
-    def atualizar_pos(self):
+
+    def limites(self):
+        offset = 30
+        if self.x + self.rect.width > width + offset:
+            self.x = width - self.rect.width + offset
+        elif self.x - self.rect.width < -offset:
+            self.x = self.rect.width - offset
+        if self.y + self.rect.height > height + offset:
+            self.y = height-self.rect.height + offset
+        elif self.y - self.rect.height < -offset:
+            self.y = self.rect.height - offset
+
+    def verificar_vida(self):
         if self.life <= 0:
             return True
         elif self.life < 100:
@@ -69,25 +75,27 @@ class Player():
     def reset(self):
         self.x = self.initial_x
         self.y = self.initial_y
-        self.life = 100
+        self.life = self.initial_life
+
 class Bullet():
-    def __init__(self,x,y,raio,velocidade,direcao,damage) -> None:
-        self.x = x
-        self.y = y
+    def __init__(self,pos,raio,velocidade,direcao,damage) -> None:
+        self.x, self.y = pos[0],pos[1]
         self.raio = raio
         self.velocidade = velocidade
         self.damage = damage
+        self.color = 'purple'
         self.dist = math.sqrt(((direcao[0]) - self.x)**2 + ((direcao[1]) - self.y)**2)
         self.dx,self.dy = ((direcao[0]) - self.x) / self.dist, ((direcao[1]) - self.y) / self.dist
+
     def draw(self,win):
-        pg.draw.circle(win,'yellow',(self.x,self.y),self.raio)
+        pg.draw.circle(win,self.color,(self.x,self.y),self.raio)
     
     def atualizar_pos(self):
-        # Atualiza a posição do círculo
         self.x += self.dx * self.velocidade
         self.y += self.dy * self.velocidade
         collide = True if self.y + self.raio > height or self.y - self.raio < 0 or self.x +self.raio>width or self.x - self.raio < 0 else False
         return collide
+
 class Enemy():
     angle = 0
     def __init__(self,pos,velocidade,life,size) -> None:
@@ -96,9 +104,8 @@ class Enemy():
         self.life = life
         self.size = size
         self.dist = math.sqrt(((width//2) - self.x)**2 + ((height//2) - self.y)**2)
-        self.dx,self.dy = ((width//2) - self.x) / self.dist, ((height//2) - self.y) / self.dist
-        self.asteroide = pg.image.load('aste.png')
-        self.asteroide = pg.transform.scale(self.asteroide, (150*self.size,150*self.size))
+        self.dx, self.dy = ((width//2) - self.x) / self.dist, ((height//2) - self.y) / self.dist
+        self.asteroide = pg.transform.scale(pg.image.load('aste.png'), (150*self.size,150*self.size))
         self.rect = self.asteroide.get_rect()
     
     def draw(self,win):        
@@ -113,11 +120,10 @@ class Enemy():
         self.y += self.dy * self.velocidade
 
 #Definição de funções
-def spawn_aste(asteroides):
-    spawn_points = [(0,0),(width,0),(width,height//2),(width,height),(width//2,height),(0,height),(0,height//2)]
-    
+def spawn_asteroides(asteroides):
+    pontos_spawn = [(0,0),(width,0),(width,height//2),(width,height),(width//2,height),(0,height),(0,height//2)]
     asteroides.append(
-        Enemy(pos=random.choice(spawn_points),velocidade=random.uniform(vmin_asteroide,vmax_asteroide),life=100,size=random.uniform(.5,1.7))
+        Enemy(pos=random.choice(pontos_spawn),velocidade=random.uniform(vmin_asteroide,vmax_asteroide),life=100,size=random.uniform(.5,1.7))
     )
 
 def draw(win,player,bullets,asteroides,tempo):
@@ -129,6 +135,7 @@ def draw(win,player,bullets,asteroides,tempo):
     tempo_ = FONT.render(f'Tempo vivo: {((pg.time.get_ticks()-tempo)/60000):.2f}minutos',True,WHITE)
     win.blit(vida,(width//2 - (vida.get_width()//2),50))
     win.blit(tempo_,(width//2 - (tempo_.get_width()//2),100))
+
     #Bullets
     for bullet in bullets:
         bullet.draw(win)
@@ -145,44 +152,49 @@ def draw(win,player,bullets,asteroides,tempo):
 
 def main():
     global vmax_asteroide, vmin_asteroide
+
     #Variáveis locais
     jogador = Player(x=width//2,y=height//2,life=100,ammo=1)
-    dano = 30
+    dano_bullet = 30
+    dano_asteroide = 50
     bullets = []
     asteroides = []
-    t_i = pg.time.get_ticks()
+    t_i0 = pg.time.get_ticks()
+    t_i1 = pg.time.get_ticks()
     t_i2 = pg.time.get_ticks()
     t_i3 = pg.time.get_ticks()
-    tempo_inicial = pg.time.get_ticks()
+
+    #Início Game Loop
     while True:
         clock.tick(fps)
-        draw(window,jogador,bullets,asteroides,tempo_inicial)
+        draw(window,jogador,bullets,asteroides,t_i0)
         keys = pg.key.get_pressed()
 
-        #Aumenta a velocidade max e min dos asteroides após 30seg
+        #Aumenta a velocidade max e min dos asteroides após 20seg
         if pg.time.get_ticks() - t_i2 > 20000:
             vmax_asteroide += 1 
             vmin_asteroide += .1
             t_i2 = pg.time.get_ticks()
 
         #Spawn asteroides
-        if pg.time.get_ticks() - t_i > t_spwan_ast:
-            spawn_aste(asteroides)
-            t_i = pg.time.get_ticks()
+        if pg.time.get_ticks() - t_i1 > tempo_spawn_asteroides:
+            spawn_asteroides(asteroides)
+            t_i1 = pg.time.get_ticks()
 
         #Player
+        jogador.limites()
         jogador.inputs(keys)
-        if jogador.atualizar_pos():
+        if jogador.verificar_vida():
             asteroides = []
             bullets = []  
             vmax_asteroide = 6 
             vmin_asteroide = .5
             jogador.reset()
-            perdeu = pg.font.SysFont('cambria',50).render('Você é ruim...',True,WHITE)    
+            perdeu = pg.font.SysFont('cambria',50).render('Você é ruim!!!',True,WHITE)    
             window.blit(perdeu,(width//2 - (perdeu.get_width()//2),height//2))
             pg.display.update()
             pg.time.delay(3000)
-            tempo_inicial = pg.time.get_ticks()
+            t_i0 = pg.time.get_ticks()
 
         #Bullets
         for i,bullet in enumerate(bullets):
@@ -193,7 +205,7 @@ def main():
         for i,asteroide in enumerate(asteroides):
             asteroide.atualizar_pos()
             if asteroide.rect.collidepoint(jogador.x,jogador.y):
-                jogador.life -=50
+                jogador.life -= dano_asteroide
                 asteroides.pop(i)
             for j,b in enumerate(bullets):
                 if asteroide.rect.collidepoint(b.x,b.y):
@@ -203,9 +215,8 @@ def main():
                 asteroides.pop(i)
 
         if pg.mouse.get_pressed()[0] and pg.time.get_ticks()-t_i3 > 70:
+            bullets.append(Bullet(pos=(jogador.x,jogador.y),raio=5,velocidade=30,damage=dano_bullet,direcao=pg.mouse.get_pos()))
             t_i3 = pg.time.get_ticks()
-            bullet = Bullet(x=jogador.x,y=jogador.y,raio=5,velocidade=30,damage=dano,direcao=pg.mouse.get_pos())
-            bullets.append(bullet)
 
         #Eventos
         for event in pg.event.get():
