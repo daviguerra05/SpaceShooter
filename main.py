@@ -1,6 +1,28 @@
 import pygame as pg
 import math
 import random
+import json
+from itertools import islice
+
+with open('pontuacoes.json','r') as file:
+    pontuacoes = json.load(file)
+pontuacoes = dict(sorted(pontuacoes.items(), key=lambda item: item[1],reverse=True))
+pontuacoes = dict(islice(pontuacoes.copy().items(), 10))
+
+while True:
+    user = input('\nInforme seu username: ').lower().replace(' ','-')
+    if len(user) > 10:
+        print('Username com mais de 10 caracteres...')
+        continue
+    if user in pontuacoes.keys():
+        match input('Já existe um com mesmo nome\nDeseja continuar? (s ou n): ').lower().replace(' ',''):
+            case 'n':
+                continue
+            case _:
+                break
+    else:
+        break
+
 pg.init()
 
 #Configurações
@@ -150,8 +172,35 @@ def draw(win,player,bullets,asteroides,tempo):
     #Atualizar
     pg.display.update()
 
+def pre(pontuacoes):
+    while True:
+        clock.tick(fps)
+        window.fill(BLACK)
+
+        title = pg.font.SysFont('cambria',30).render('Melhores pontuações',True,WHITE)
+        window.blit(title,(width//2-(title.get_width()//2),100))
+
+        y = 200
+        for i in pontuacoes.keys():
+            pont1 = pg.font.SysFont('cambria',20).render(f'{i}. {pontuacoes[i]}min',True,WHITE)
+            window.blit(pont1,(width//2-(pont1.get_width()//2),y))
+            y+=30
+
+        space = pg.font.SysFont('cambria',15).render('Pressione SPACE para continuar',True,WHITE)
+        window.blit(space,(width//2-(space.get_width()//2),height-100))
+
+        if pg.key.get_pressed()[pg.K_SPACE]:
+            break
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                exit()
+                
+        pg.display.update()
+
 def main():
     global vmax_asteroide, vmin_asteroide
+
+    pre(pontuacoes)
 
     #Variáveis locais
     jogador = Player(x=width//2,y=height//2,life=100,ammo=1)
