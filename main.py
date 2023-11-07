@@ -1,30 +1,17 @@
 import pygame as pg
+import pygame_gui as pgui
 import math
 import random
 import json
 from itertools import islice
 
+#Importar pontuações
 with open('pontuacoes.json','r') as file:
     pontuacoes = json.load(file)
 pontuacoes = dict(sorted(pontuacoes.items(), key=lambda item: item[1],reverse=True))
 pontuacoes = dict(islice(pontuacoes.copy().items(), 10))
 
-while True:
-    user = input('\nInforme seu username: ').lower().replace(' ','-')
-    if len(user) > 15:
-        print('Username com mais de 15 caracteres...')
-        continue
-    if user in pontuacoes.keys():
-        match input('Já existe um com mesmo nome\nDeseja continuar? (s ou n): ').lower().replace(' ',''):
-            case 'n':
-                continue
-            case _:
-                highscore = pontuacoes[user]
-                break
-    else:
-        highscore = 0
-        break
-
+#Iníco pygame
 pg.init()
 
 #Configurações
@@ -41,7 +28,8 @@ FONT = pg.font.SysFont('cambria',15)
 vmax_asteroide, vmin_asteroide = 6, .5
 tempo_spawn_asteroides = 500 #500ms
 
-
+user = '/'
+highscore = 0
 
 #Definiçõa de classes
 class Player():
@@ -146,6 +134,45 @@ class Enemy():
         self.y += self.dy * self.velocidade
 
 #Definição de funções
+def get_user():
+    global highscore,user
+    manager = pgui.UIManager((width,height))
+    text_input = pgui.elements.UITextEntryLine(relative_rect=pg.Rect(width//2-250,200,500,50),manager=manager,object_id="#input")
+    running = True
+    while running:
+        clock.tick(fps)
+        window.fill(BLACK)
+        title = pg.font.SysFont('cambria',30).render('Digite seu Username:',True,WHITE)
+        window.blit(title,(width//2-(title.get_width()//2),100))
+
+        manager.draw_ui(window)
+
+        if len(user) > 15:
+            erro = pg.font.SysFont('cambria',15).render(f'Username com mais de 15 caracteres!',True,'red')
+            window.blit(erro,(width//2-(erro.get_width()//2),280))
+        if not user.replace('-',''):
+            erro = pg.font.SysFont('cambria',15).render(f'Username vazio!',True,'red')
+            window.blit(erro,(width//2-(erro.get_width()//2),280))
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                exit()
+            if event.type == pgui.UI_TEXT_ENTRY_FINISHED and event.ui_object_id == "#input":
+                user = str(event.text).lower().replace(' ','-')
+                if len(user) > 15 or not user.replace('-',''):
+                    pass
+                elif user in pontuacoes.keys():
+                    highscore = pontuacoes[user]
+                    running = False
+                else:
+                    running = False
+            manager.process_events(event)
+
+        manager.update(clock.tick(fps)/1000)
+
+        #Atualiza tela
+        pg.display.update()
+
 def spawn_asteroides(asteroides):
     pontos_spawn = [(0,0),(width,0),(width,height//2),(width,height),(width//2,height),(0,height),(0,height//2)]
     asteroides.append(
@@ -193,7 +220,7 @@ def pre():
         #Pontuações
         y = 200
         for i in pontuacoes.keys():
-            pont1 = pg.font.SysFont('cambria',20).render(f'{i}. {pontuacoes[i]}min',True,WHITE)
+            pont1 = pg.font.SysFont('cambria',20).render(f'{i}  {'.'*(50-len(i))}   {pontuacoes[i]}min',True,WHITE)
             window.blit(pont1,(width//2-(pont1.get_width()//2),y))
             y+=30
 
@@ -213,6 +240,8 @@ def pre():
 
 def main():
     global vmax_asteroide, vmin_asteroide, highscore
+    get_user()
+    pg.mouse.set_cursor(*pg.cursors.arrow)
     pre()
 
     #Variáveis locais
