@@ -114,7 +114,7 @@ class Enemy():
 
 #Definição de funções
 def spawn_aste(asteroides):
-    spawn_points = [(0,0),(width,0),(width,height//2),(width,height),(width//2,height),(0,height)]
+    spawn_points = [(0,0),(width,0),(width,height//2),(width,height),(width//2,height),(0,height),(0,height//2)]
     
     asteroides.append(
         Enemy(pos=random.choice(spawn_points),velocidade=random.uniform(vmin_asteroide,vmax_asteroide),life=100,size=random.uniform(.5,1.7))
