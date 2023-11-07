@@ -15,9 +15,7 @@ FONT = pg.font.SysFont('cambria',15)
 
 nave = pg.image.load('nave.png')
 nave = pg.transform.scale(nave, (150,150))
-background = pg.image.load("background.jpg")
-background = pg.transform.scale(background,(1200,800))
-background.set_alpha(128)
+
 vmax_asteroide = 6
 vmin_asteroide = .5
 
@@ -124,7 +122,7 @@ def spawn_aste(asteroides):
 
 def draw(win,player,bullets,asteroides,tempo):
     #Background
-    win.blit(background,(0,0))
+    win.fill(BLACK)
 
     #Textos
     vida = FONT.render(f'Vida do jogador: {player.life:.0f}',True,WHITE)
