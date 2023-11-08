@@ -5,11 +5,13 @@ import random
 import json
 from itertools import islice
 
-#Importar pontuações
-with open('pontuacoes.json','r') as file:
-    pontuacoes = json.load(file)
-pontuacoes = dict(sorted(pontuacoes.items(), key=lambda item: item[1],reverse=True))
-pontuacoes = dict(islice(pontuacoes.copy().items(), 10))
+def importar_pontuacoes():
+    #Importar pontuações
+    with open('./data/pontuacoes.json','r') as file:
+        pontuacoes = json.load(file)
+    pontuacoes = dict(sorted(pontuacoes.items(), key=lambda item: item[1],reverse=True))
+    return dict(islice(pontuacoes.copy().items(), 10))
+pontuacoes = importar_pontuacoes()
 
 #Iníco pygame
 pg.init()
@@ -39,7 +41,7 @@ class Player():
         self.life = self.initial_life = life
         self.ammo = ammo
         self.velocidade = 10
-        self.nave = pg.transform.scale(pg.image.load('nave.png'), (110,110))
+        self.nave = pg.transform.scale(pg.image.load('./data/nave.png'), (110,110))
         self.rect = self.nave.get_rect()
     
     def draw(self,win):
@@ -119,7 +121,7 @@ class Enemy():
         self.size = size
         self.dist = math.sqrt(((width//2) - self.x)**2 + ((height//2) - self.y)**2)
         self.dx, self.dy = ((width//2) - self.x) / self.dist, ((height//2) - self.y) / self.dist
-        self.asteroide = pg.transform.scale(pg.image.load('aste.png'), (150*self.size,150*self.size))
+        self.asteroide = pg.transform.scale(pg.image.load('./data/aste.png'), (150*self.size,150*self.size))
         self.rect = self.asteroide.get_rect()
     
     def draw(self,win):        
@@ -174,7 +176,12 @@ def get_user():
         pg.display.update()
 
 def spawn_asteroides(asteroides):
-    pontos_spawn = [(0,0),(width,0),(width,height//2),(width,height),(width//2,height),(0,height),(0,height//2)]
+    offset = 120
+    pontos_spawn = [(-offset,-offset),(-offset,height//4),(-offset,height//2),(-offset,height-(height//4)),(-offset,height),
+                    (width//4,-offset),(width//2,-offset),(width-(width//4),-offset),(width,-offset),
+                    (width+offset,height//4),(width+offset,height//2),(width+offset,height-(height//4)),(width+offset,height+offset),
+                    (width-(width//4),height+offset),(width//2,height+offset),(width//4,height+offset)
+                    ]
     asteroides.append(
         Enemy(pos=random.choice(pontos_spawn),velocidade=random.uniform(vmin_asteroide,vmax_asteroide),life=100,size=random.uniform(.5,1.7))
     )
@@ -203,11 +210,9 @@ def draw(win,player,bullets,asteroides,tempo):
     #Atualizar
     pg.display.update()
 
-def pre():
+def menu_tabela():
     global pontuacoes
-    pontuacoes = dict(sorted(pontuacoes.items(), key=lambda item: item[1],reverse=True))
-    pontuacoes = dict(islice(pontuacoes.copy().items(), 10))   
-
+    pontuacoes = importar_pontuacoes()
     #Inicia Menu 
     while True:
         clock.tick(fps)
@@ -242,7 +247,7 @@ def main():
     global vmax_asteroide, vmin_asteroide, highscore
     get_user()
     pg.mouse.set_cursor(*pg.cursors.arrow)
-    pre()
+    menu_tabela()
 
     #Variáveis locais
     jogador = Player(x=width//2,y=height//2,life=100,ammo=1)
@@ -280,7 +285,7 @@ def main():
             if (pg.time.get_ticks() - t_i0)/60000 > highscore:
                 highscore = round((pg.time.get_ticks() - t_i0)/60000,2)
                 pontuacoes[user] = highscore
-                with open("pontuacoes.json", "w") as file:
+                with open("./data/pontuacoes.json", "w") as file:
                     json.dump(pontuacoes, file)
             asteroides = []
             bullets = []  
@@ -291,7 +296,7 @@ def main():
             window.blit(perdeu,(width//2 - (perdeu.get_width()//2),height//2))
             pg.display.update()
             pg.time.delay(2000)
-            pre()
+            menu_tabela()
             t_i0 = pg.time.get_ticks()
 
         #Bullets
