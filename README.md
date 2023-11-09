@@ -8,10 +8,12 @@ Jogo de sobrevivência no espaço. Fique o maior tempo vivo na chuva de asteroid
 CMD:
 ```bash
   pip install pygame
+  pip install pygame_gui
 ```
 Exemplo CMD para versão específica do python:
 ```bash
   python3.12 -m pip install pygame
+  python3.12 -m pip install pygame_gui
 ```
 
 Então execute o arquivo:
