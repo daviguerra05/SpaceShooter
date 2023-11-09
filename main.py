@@ -35,18 +35,18 @@ highscore = 0
 
 #Definiçõa de classes
 class Player():
-    def __init__(self,x,y,life,ammo) -> None:
+    def __init__(self,x,y,life) -> None:
         self.x = self.initial_x = x
         self.y = self.initial_y = y
         self.life = self.initial_life = life
-        self.ammo = ammo
+        self.ammo = 1
         self.velocidade = 10
         self.nave = pg.transform.scale(pg.image.load('./data/nave.png'), (110,110))
         self.rect = self.nave.get_rect()
     
     def draw(self,win):
         mouse_x, mouse_y = pg.mouse.get_pos()
-        angulo = math.degrees(math.atan2(mouse_y - self.y, mouse_x - self.x))*-1
+        angulo = math.degrees(math.atan2(mouse_y - self.y, mouse_x - self.x)) * -1
         nave_img_rotacionada = pg.transform.rotate(self.nave, angulo-90)
         self.rect = nave_img_rotacionada.get_rect()
         self.rect.center = (self.x, self.y)
@@ -94,12 +94,12 @@ class Player():
         self.life = self.initial_life
 
 class Bullet():
-    def __init__(self,pos,raio,velocidade,direcao,damage) -> None:
+    def __init__(self,pos,raio,velocidade,direcao,damage,color) -> None:
         self.x, self.y = pos[0],pos[1]
         self.raio = raio
         self.velocidade = velocidade
         self.damage = damage
-        self.color = 'purple'
+        self.color = color
         self.dist = math.sqrt(((direcao[0]) - self.x)**2 + ((direcao[1]) - self.y)**2)
         self.dx,self.dy = ((direcao[0]) - self.x) / self.dist, ((direcao[1]) - self.y) / self.dist
 
@@ -243,6 +243,19 @@ def menu_tabela():
         #Atualiza tela
         pg.display.update()
 
+def menu_ammo():
+    while True:
+        clock.tick(fps)
+        window.fill('white')
+        pg.display.update()
+
+        if pg.key.get_pressed()[pg.K_ESCAPE]:
+            break
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                exit()
+
 def main():
     global vmax_asteroide, vmin_asteroide, highscore
     get_user()
@@ -250,10 +263,11 @@ def main():
     menu_tabela()
 
     #Variáveis locais
-    jogador = Player(x=width//2,y=height//2,life=100,ammo=1)
+    jogador = Player(x=width//2,y=height//2,life=100)
     dano_bullet = 30
     dano_asteroide = 50
     bullets = []
+    b_color = 'purple'
     asteroides = []
     t_i0 = pg.time.get_ticks()
     t_i1 = pg.time.get_ticks()
@@ -317,14 +331,33 @@ def main():
             if asteroide.life <= 0:
                 asteroides.pop(i)
 
-        if pg.mouse.get_pressed()[0] and pg.time.get_ticks()-t_i3 > 70:
-            bullets.append(Bullet(pos=(jogador.x,jogador.y),raio=5,velocidade=30,damage=dano_bullet,direcao=pg.mouse.get_pos()))
+        #Atirar
+        if jogador.ammo == 1:
+            b_color = 'purple'
+            dano_bullet = 30
+            shoot_speed = 70
+        elif jogador.ammo == 2:
+            dano_bullet = 10
+            shoot_speed = 30
+            b_color = 'red'
+        else:
+            b_color = 'green'
+            dano_bullet = 50
+            shoot_speed = 300
+            
+        if pg.mouse.get_pressed()[0] and pg.time.get_ticks()-t_i3 > shoot_speed:
+            bullets.append(Bullet(pos=(jogador.x,jogador.y),raio=5,velocidade=30,damage=dano_bullet,direcao=pg.mouse.get_pos(),color=b_color))
             t_i3 = pg.time.get_ticks()
 
+        if pg.key.get_pressed()[pg.K_m]:
+            menu_ammo()
+        
         #Eventos
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 exit()
+            if event.type == pg.KEYDOWN and event.key == 101:
+                jogador.ammo = 1 if jogador.ammo == 3 else jogador.ammo+1
 
 #Execução
 if __name__ == '__main__':
